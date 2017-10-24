@@ -1,0 +1,190 @@
+简述
+
+QProcess可以用来启动外部程序，并与它们交互。
+要启动一个进程，通过调用start()来进行，参数包含程序的名称和命令行参数，参数作为一个QStringList的单个字符串。
+另外，也可以使用setProgram()和setArguments()来运行，然后调用start()或open()。
+简述
+接口
+示例
+cmd
+启动cmd
+cmd带参数
+cmd获取返回值
+putty远程登录
+WinSCP远程文件传输
+管道
+错误处理
+参数arguments
+获取环境变量
+接口
+start() 启动外部程序
+readAllStandardError() 从标准错误中获取所有数据
+readAllStandardOutput() 从标准输出中获取所有数据
+write() 继承于QIODevice
+close() 继承于QIODevice
+除此之外，QProcess还包含静态成员函数：
+execute() 启动一个进程，然后等待该进程结束。
+startDetached() 启动一个进程，然后使其和当前进程脱离进程的父子关系。
+示例
+cmd
+启动cmd
+
+QProcess process(this);
+process.startDetached("cmd.exe");
+cmd带参数
+
+使用cmd来删除本地文件
+
+QProcess process(this);
+process.start("cmd.exe");
+process.write ("del E:\\a.txt\n\r");
+process.write ("exit\n\r");
+process.waitForFinished();
+process.close();
+cmd获取返回值
+
+使用cmd来查看网络状况
+
+QStringList arguments;
+arguments << "/c" << "ping www.baidu.com";
+
+QProcess process(this);
+process.start("cmd.exe", arguments);
+process.waitForStarted();
+process.waitForFinished();
+QString strResult = QString::fromLocal8Bit(process.readAllStandardOutput());
+
+QMessageBox msgBox(this);
+msgBox.setText(strResult);
+msgBox.exec();
+putty远程登录
+
+QString program = "E:/Putty.exe";
+
+QStringList arguments;
+arguments<< "-pw" << "wang" << QString("%1@%2").arg("root").arg("172.18.5.73") << "22";
+
+QProcess *process = new QProcess(this);
+process->setProcessChannelMode(QProcess::SeparateChannels);
+process->setReadChannel(QProcess::StandardOutput);
+process->start(program, arguments, QIODevice::ReadWrite);
+1
+2
+3
+4
+5
+6
+7
+8
+9
+
+WinSCP远程文件传输
+
+QString program = QCoreApplication::applicationDirPath() + "/WinSCP/WinSCP.exe";
+
+QStringList arguments;
+arguments << QString("%1:%2@%3:%4").arg("root").arg("wang").arg("172.18.5.73").arg(22);
+
+QProcess *process = new QProcess(this);
+process->setProcessChannelMode(QProcess::SeparateChannels);
+process->setReadChannel(QProcess::StandardOutput);
+process->start(program, arguments, QIODevice::ReadWrite);
+1
+2
+3
+4
+5
+6
+7
+8
+9
+管道
+
+一个进程的标准输出流到目标进程的标准输入。
+
+command1 | command2
+
+可以用下面代码实现：
+
+QProcess process1;
+QProcess process2;
+
+process1.setStandardOutputProcess(&process2);
+
+process1.start("command1");
+process2.start("command2");
+1
+2
+3
+4
+5
+6
+7
+错误处理
+
+启动外部程序，当发生错误时，可以根据指定的错误描述所发生的错误类型。
+
+connect(process, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
+
+void processError(QProcess::ProcessError error)
+{
+    switch(error)
+    {
+    case QProcess::FailedToStart:
+        QMessageBox::information(0, "Tip", "FailedToStart");
+        break;
+    case QProcess::Crashed:
+        QMessageBox::information(0, "Tip", "Crashed");
+        break;
+    case QProcess::Timedout:
+        QMessageBox::information(0, "Tip", "Timedout");
+        break;
+    case QProcess::WriteError:
+        QMessageBox::information(0, "Tip", "WriteError");
+        break;
+    case QProcess::ReadError:
+        QMessageBox::information(0, "Tip", "ReadError");
+        break;
+    case QProcess::UnknownError:
+        QMessageBox::information(0, "Tip", "UnknownError");
+        break;
+    default:
+        QMessageBox::information(0, "Tip", "UnknownError");
+        break;
+    }
+}
+假设不存在对应的外部程序，则会返回错误类型QProcess::FailedToStart。
+
+参数arguments
+
+以putty远程登录为例，putty可以使用命令行putty [-pw password] user@ip来进行连接。
+
+所以中间为空格的地方使用arguments进行单个字符串分离：
+
+QStringList arguments;
+arguments<< "-pw" << "wang" << QString("%1@%2").arg("root").arg("172.18.5.73");
+1
+2
+其它参数类似。
+
+QProcess process;
+process.start("del /s *.txt");
+//等同于process.start("del", QStringList() << "/s" << "*.txt");
+1
+2
+3
+获取环境变量
+
+返回调用进程的环境变量作为一个键值对列表。
+
+QStringList environment =  QProcess::systemEnvironment();
+//environment = {"PATH=/usr/bin:/usr/local/bin", "USER=greg", "HOME=/home/greg"}
+
+
+
+how to execute cmd-command using qprocess
+
+
+http://doc.qt.io/qt-4.8/qprocess.html
+https://stackoverflow.com/questions/22691272/how-to-launch-and-later-terminate-cmd-exe-in-a-console-window-with-qprocess
+https://stackoverflow.com/questions/21596104/how-to-execute-a-cmd-command-using-qprocess
